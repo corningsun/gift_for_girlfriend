@@ -51,22 +51,36 @@
             return p;
         }
     }
+    Leef = function(type) {
+        var points = [], x, y, t, i;
+        if(type == "heart") {
+            // x = 16 sin^3 t
+            // y = 13 cos t - 5 cos 2t - 2 cos 3t - cos 4t
+            // http://www.wolframalpha.com/input/?i=x+%3D+16+sin%5E3+t%2C+y+%3D+(13+cos+t+-+5+cos+2t+-+2+cos+3t+-+cos+4t)
+            for (i = 10; i < 30; i += 0.2) {
+                t = i / Math.PI;
+                x = 16 * Math.pow(Math.sin(t), 3);
+                y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+                points.push(new Point(x, y));
+            }
+            this.points = points;
+            this.length = points.length;
+        } else if(type == "star") {
+            var radius = 15;
+            var angleChange = 360 / 15;
 
-    Heart = function() {
-        // x = 16 sin^3 t
-        // y = 13 cos t - 5 cos 2t - 2 cos 3t - cos 4t
-        // http://www.wolframalpha.com/input/?i=x+%3D+16+sin%5E3+t%2C+y+%3D+(13+cos+t+-+5+cos+2t+-+2+cos+3t+-+cos+4t)
-        var points = [], x, y, t;
-        for (var i = 10; i < 30; i += 0.2) {
-            t = i / Math.PI;
-            x = 16 * Math.pow(Math.sin(t), 3);
-            y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-            points.push(new Point(x, y));
+            for (i = 0; i < 15; i += 1) {
+                var angle = i* angleChange*2.199;
+                x = radius * Math.cos(angle) + 2;
+                y = radius * Math.sin(angle) + 2;
+                points.push(new Point(x, y));
+            }
+            this.points = points;
+            this.length = points.length;
         }
-        this.points = points;
-        this.length = points.length;
     }
-    Heart.prototype = {
+
+    Leef.prototype = {
         get: function(i, scale) {
             return this.points[i].mul(scale || 1);
         }
@@ -75,14 +89,14 @@
     Seed = function(tree, point, scale, color) {
         this.tree = tree;
 
-        var scale = scale || 1
-        var color = color || '#FF0000';
+        scale = scale || 1;
+        color = color || '#FF0000';
 
-        this.heart = {
+        this.leef = {
             point  : point,
             scale  : scale,
             color  : color,
-            figure : new Heart(),
+            figure : new Leef(tree.opt.type),
         }
 
         this.cirle = {
@@ -94,7 +108,7 @@
     }
     Seed.prototype = {
         draw: function() {
-            this.drawHeart();
+            this.drawLeef();
             this.drawText();
         },
         addPosition: function(x, y) {
@@ -109,28 +123,28 @@
             this.addPosition(x, y);
         },
         canScale: function() {
-            return this.heart.scale > 0.2;
+            return this.leef.scale > 0.2;
         },
-        setHeartScale: function(scale) {
-            this.heart.scale *= scale;
+        setLeefScale: function(scale) {
+            this.leef.scale *= scale;
         },
         scale: function(scale) {
             this.clear();
             this.drawCirle();
-            this.drawHeart();
-            this.setHeartScale(scale);
+            this.drawLeef();
+            this.setLeefScale(scale);
         },
-        drawHeart: function() {
-            var ctx = this.tree.ctx, heart = this.heart;
-            var point = heart.point, color = heart.color, 
-                scale = heart.scale;
+        drawLeef: function() {
+            var ctx = this.tree.ctx, leef = this.leef;
+            var point = leef.point, color = leef.color,
+                scale = leef.scale;
             ctx.save();
             ctx.fillStyle = color;
             ctx.translate(point.x, point.y);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            for (var i = 0; i < heart.figure.length; i++) {
-                var p = heart.figure.get(i, scale);
+            for (var i = 0; i < leef.figure.length; i++) {
+                var p = leef.figure.get(i, scale);
                 ctx.lineTo(p.x, -p.y);
             }
             ctx.closePath();
@@ -147,23 +161,23 @@
             ctx.scale(scale, scale);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-    	    ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
             ctx.closePath();
             ctx.fill();
             ctx.restore();
         },
         drawText: function() {
-            var ctx = this.tree.ctx, heart = this.heart;
-            var point = heart.point, color = heart.color, 
-                scale = heart.scale;
+            var ctx = this.tree.ctx, leef = this.leef;
+            var point = leef.point, color = leef.color,
+                scale = leef.scale;
             ctx.save();
             ctx.strokeStyle = color;
             ctx.fillStyle = color;
             ctx.translate(point.x, point.y);
             ctx.scale(scale, scale);
             ctx.moveTo(0, 0);
-    	    ctx.lineTo(15, 15);
-    	    ctx.lineTo(60, 15);
+            ctx.lineTo(15, 15);
+            ctx.lineTo(60, 15);
             ctx.stroke();
 
             ctx.moveTo(0, 0);
@@ -187,7 +201,7 @@
 
     Footer = function(tree, width, height, speed) {
         this.tree = tree;
-        this.point = new Point(tree.seed.heart.point.x, tree.height - height / 2);
+        this.point = new Point(tree.seed.leef.point.x, tree.height - height / 2);
         this.width = width;
         this.height = height;
         this.speed = speed || 2;
@@ -206,8 +220,8 @@
             ctx.translate(point.x, point.y);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-    	    ctx.lineTo(len, 0);
-    	    ctx.lineTo(-len, 0);
+            ctx.lineTo(len, 0);
+            ctx.lineTo(-len, 0);
             ctx.stroke();
             ctx.restore();
 
@@ -263,7 +277,7 @@
                 num = bloom.num || 500, 
                 width = bloom.width || this.width,
                 height = bloom.height || this.height,
-                figure = this.seed.heart.figure;
+                figure = this.seed.leef.figure;
             var r = 240, x, y;
             for (var i = 0; i < num; i++) {
                 cache.push(this.createBloom(width, height, r, figure));
@@ -287,16 +301,16 @@
 
             ctx.save();
             ctx.putImageData(image, point.x, point.y);
-        	ctx.restore();
+            ctx.restore();
         },
 
         addBranch: function(branch) {
-        	this.branchs.push(branch);
+            this.branchs.push(branch);
         },
 
         addBranchs: function(branchs){
             var s = this, b, p1, p2, p3, r, l, c;
-        	for (var i = 0; i < branchs.length; i++) {
+            for (var i = 0; i < branchs.length; i++) {
                 b = branchs[i];
                 p1 = new Point(b[0], b[1]);
                 p2 = new Point(b[2], b[3]);
@@ -310,9 +324,9 @@
 
         removeBranch: function(branch) {
             var branchs = this.branchs;
-        	for (var i = 0; i < branchs.length; i++) {
-        		if (branchs[i] === branch) {
-        			branchs.splice(i, 1);
+            for (var i = 0; i < branchs.length; i++) {
+                if (branchs[i] === branch) {
+                    branchs.splice(i, 1);
                 }
             }
         },
@@ -322,7 +336,7 @@
         },
         grow: function() {
             var branchs = this.branchs;
-    	    for (var i = 0; i < branchs.length; i++) {
+            for (var i = 0; i < branchs.length; i++) {
                 var branch = branchs[i];
                 if (branch) {
                     branch.grow();
@@ -396,7 +410,7 @@
             ctx.save();
             ctx.clearRect(point.x, point.y, width, height);
             ctx.putImageData(image, i, j);
-        	ctx.restore();
+            ctx.restore();
 
             rec.point = new Point(i, j);
             rec.speed = speed * 0.95;
@@ -418,7 +432,7 @@
                 var bloom = this.opt.bloom || {},
                     width = bloom.width || this.width,
                     height = bloom.height || this.height,
-                    figure = this.seed.heart.figure;
+                    figure = this.seed.leef.figure;
                 var r = 240, x, y;
                 for (var i = 0; i < random(1,2); i++) {
                     blooms.push(this.createBloom(width / 2 + width, height, r, figure, null, 1, null, 1, new Point(random(-100,600), 720), random(200,300)));
@@ -456,15 +470,15 @@
             var s = this;
             var ctx = s.tree.ctx;
             ctx.save();
-        	ctx.beginPath();
-        	ctx.fillStyle = 'rgb(35, 31, 32)';
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(35, 31, 32)';
             ctx.shadowColor = 'rgb(35, 31, 32)';
             ctx.shadowBlur = 2;
-        	ctx.moveTo(p.x, p.y);
-        	ctx.arc(p.x, p.y, s.radius, 0, 2 * Math.PI);
-        	ctx.closePath();
-        	ctx.fill();
-        	ctx.restore();
+            ctx.moveTo(p.x, p.y);
+            ctx.arc(p.x, p.y, s.radius, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
         }
     }
 
